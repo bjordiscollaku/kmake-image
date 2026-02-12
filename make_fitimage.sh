@@ -10,7 +10,7 @@
 #   --metadata  Path to metadata DTS file (mandatory)
 #   --its       Path to FIT image ITS file (mandatory)
 #   --kobj      Path to kernel build artifacts directory (default: ../kobj)
-#   --kernel-deb Path to kernel .deb package (Optional: Use instead of --kobj)
+#   --kernel-deb Path to kernel .deb package (Alternative to --kobj)
 #   --output    Output directory for generated FIT image (default: ../images)
 #   --help      Show help message
 #
@@ -21,6 +21,9 @@
 ###############################################################################
 
 set -e
+
+# Get the directory where this script resides to find helper scripts
+SCRIPT_DIR="$(dirname "$(realpath "$0")")"
 
 # Default paths
 KERNEL_BUILD_ARTIFACTS="../kobj"
@@ -172,7 +175,13 @@ function create_fit_image() {
     popd > /dev/null
 
     echo "Packing final image into fit_dtb.bin..."
-    generate_boot_bins.sh bin --input "${OUTPUT_DIR}/fit_dir" --output "${OUTPUT_DIR}/fit_dtb.bin"
+    
+    # Use SCRIPT_DIR to locate the helper script
+    if [ ! -x "${SCRIPT_DIR}/generate_boot_bins.sh" ]; then
+        echo "Error: generate_boot_bins.sh not found at ${SCRIPT_DIR}"
+        exit 1
+    fi
+    "${SCRIPT_DIR}/generate_boot_bins.sh" bin --input "${OUTPUT_DIR}/fit_dir" --output "${OUTPUT_DIR}/fit_dtb.bin"
 }
 
 echo "Starting FIT image creation..."
