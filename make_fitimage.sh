@@ -73,11 +73,13 @@ function process_kernel_deb() {
     local DEB_PATH="$1"
     local WORK_DIR
     WORK_DIR=$(mktemp -d)
-    echo "Processing .deb package: $DEB_PATH"
+    
+    # Send logs to stderr (>&2) so they are not captured by the variable assignment
+    echo "Processing .deb package: $DEB_PATH" >&2
     
     # 1. Extract the deb
     if ! command -v dpkg-deb &> /dev/null; then
-        echo "Error: dpkg-deb not found. Cannot extract .deb files."
+        echo "Error: dpkg-deb not found. Cannot extract .deb files." >&2
         rm -rf "$WORK_DIR"
         exit 1
     fi
@@ -96,13 +98,13 @@ function process_kernel_deb() {
         # We look for a directory that actually contains .dtb files
         if [ -d "$path" ] && [ -n "$(find "$path" -name "*.dtb" -print -quit)" ]; then
             DTB_ROOT="$path"
-            echo "Found DTB directory inside deb: $DTB_ROOT"
+            echo "Found DTB directory inside deb: $DTB_ROOT" >&2
             break
         fi
     done
 
     if [ -z "$DTB_ROOT" ]; then
-        echo "Error: Could not find DTB files in standard paths within .deb"
+        echo "Error: Could not find DTB files in standard paths within .deb" >&2
         rm -rf "$WORK_DIR"
         exit 1
     fi
@@ -116,7 +118,7 @@ function process_kernel_deb() {
     # We copy recursively to the qcom/ folder.
     cp -r "$DTB_ROOT"/* "$FAKE_KOBJ/arch/arm64/boot/dts/qcom/" 2>/dev/null || cp -r "$DTB_ROOT"/* "$FAKE_KOBJ/arch/arm64/boot/dts/"
 
-    # Return the new path to the caller
+    # Return the new path to the caller (THIS goes to stdout)
     echo "$FAKE_KOBJ"
 }
 
@@ -144,7 +146,8 @@ function create_fit_image() {
     # Cleaning previous FIT image artifacts
     rm -f "${OUTPUT_DIR}/fit_dtb.bin"
     rm -rf "${OUTPUT_DIR}/fit_dir"
-
+    
+    # Clean up temp files in the artifact dir (works for both real kobj and fake one)
     rm -f "${KERNEL_BUILD_ARTIFACTS}/qcom-fitimage.its"
     rm -f "${KERNEL_BUILD_ARTIFACTS}/qcom-metadata.dtb"
 
